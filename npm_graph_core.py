@@ -19,6 +19,7 @@ DEPTH_PALETTE = {
     4: "#5f0f40",
 }
 DEFAULT_NODE_COLOR = "#6c757d"
+TOP_METRIC_COUNT = 5
 
 
 @dataclass
@@ -146,6 +147,46 @@ def build_dependency_graph(
     return graph
 
 
+def _round_metric(value: float) -> float:
+    return round(float(value), 4)
+
+
+def _top_metric_entries(metric_values: dict[str, float], limit: int = TOP_METRIC_COUNT) -> list[dict[str, object]]:
+    return [
+        {"name": name, "value": _round_metric(value)}
+        for name, value in sorted(metric_values.items(), key=lambda item: (-item[1], item[0].lower()))[:limit]
+    ]
+
+
+def analyze_graph_metrics(graph: nx.DiGraph, root_name: str | None = None) -> dict[str, object]:
+    analysis_graph = graph.to_undirected()
+
+    if analysis_graph.number_of_nodes() == 0:
+        betweenness: dict[str, float] = {}
+        closeness: dict[str, float] = {}
+        density = 0.0
+    else:
+        betweenness = nx.betweenness_centrality(analysis_graph, normalized=True)
+        closeness = nx.closeness_centrality(analysis_graph)
+        density = nx.density(analysis_graph) if analysis_graph.number_of_nodes() > 1 else 0.0
+
+    rounded_betweenness = {node: _round_metric(value) for node, value in betweenness.items()}
+    rounded_closeness = {node: _round_metric(value) for node, value in closeness.items()}
+    resolved_root_name = root_name if root_name in graph else next(iter(graph.nodes), "")
+
+    return {
+        "density": _round_metric(density),
+        "density_percent": round(float(density) * 100, 2),
+        "betweenness": rounded_betweenness,
+        "closeness": rounded_closeness,
+        "top_betweenness": _top_metric_entries(rounded_betweenness),
+        "top_closeness": _top_metric_entries(rounded_closeness),
+        "root_package": resolved_root_name,
+        "root_betweenness": rounded_betweenness.get(resolved_root_name, 0.0),
+        "root_closeness": rounded_closeness.get(resolved_root_name, 0.0),
+    }
+
+
 def node_color(depth: int) -> str:
     return DEPTH_PALETTE.get(depth, DEFAULT_NODE_COLOR)
 
@@ -186,6 +227,9 @@ def compute_3d_layout(graph: nx.DiGraph, root_name: str) -> dict[str, np.ndarray
 
 def build_plotly_payload(graph: nx.DiGraph, package_name: str) -> dict[str, object]:
     positions = compute_3d_layout(graph, package_name)
+    metrics = analyze_graph_metrics(graph, root_name=package_name)
+    betweenness = metrics["betweenness"]
+    closeness = metrics["closeness"]
     edge_x: list[float | None] = []
     edge_y: list[float | None] = []
     edge_z: list[float | None] = []
@@ -223,6 +267,8 @@ def build_plotly_payload(graph: nx.DiGraph, package_name: str) -> dict[str, obje
                     f"Istenen surum: {node_data.get('requested_version', 'latest')}",
                     f"Derinlik: {depth}",
                     f"Derece: {degree}",
+                    f"Betweenness centrality: {betweenness.get(node_name, 0.0):.4f}",
+                    f"Closeness centrality: {closeness.get(node_name, 0.0):.4f}",
                 ]
             )
         )
@@ -241,4 +287,5 @@ def build_plotly_payload(graph: nx.DiGraph, package_name: str) -> dict[str, obje
         "node_sizes": node_sizes,
         "node_colors": node_colors,
         "hover_text": hover_text,
+        "metrics": metrics,
     }

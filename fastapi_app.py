@@ -33,6 +33,22 @@ def load_graph_payload(package_name: str, depth: int, max_children: int, max_nod
     return payload
 
 
+
+def render_metric_list(entries: object) -> str:
+    if not isinstance(entries, list) or not entries:
+        return "<li><span>Veri yok</span><strong>0.0000</strong></li>"
+
+    items: list[str] = []
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        name = escape(str(entry.get("name", "-")))
+        value = float(entry.get("value", 0.0))
+        items.append(f"<li><span>{name}</span><strong>{value:.4f}</strong></li>")
+
+    return "".join(items) or "<li><span>Veri yok</span><strong>0.0000</strong></li>"
+
+
 def render_page(
     package_name: str,
     depth: int,
@@ -43,6 +59,36 @@ def render_page(
 ) -> str:
     graph_json = json.dumps(payload) if payload is not None else "null"
     error_html = f'<p class="error">{escape(error_message)}</p>' if error_message else ""
+    metrics_html = ""
+
+    if payload is not None:
+        metrics = payload.get("metrics")
+        if isinstance(metrics, dict):
+            density_percent = float(metrics.get("density_percent", 0.0))
+            root_package = escape(str(metrics.get("root_package", package_name)))
+            root_betweenness = float(metrics.get("root_betweenness", 0.0))
+            root_closeness = float(metrics.get("root_closeness", 0.0))
+            top_betweenness = render_metric_list(metrics.get("top_betweenness", []))
+            top_closeness = render_metric_list(metrics.get("top_closeness", []))
+            metrics_html = f"""
+      <section class="metrics">
+        <article class="metric-card">
+          <h2>Ag Ozeti</h2>
+          <p><span>Ag yogunlugu</span><strong>%{density_percent:.2f}</strong></p>
+          <p><span>Kok paket</span><strong>{root_package}</strong></p>
+          <p><span>Kok betweenness</span><strong>{root_betweenness:.4f}</strong></p>
+          <p><span>Kok closeness</span><strong>{root_closeness:.4f}</strong></p>
+        </article>
+        <article class="metric-card">
+          <h2>Top Betweenness</h2>
+          <ol class="metric-list">{top_betweenness}</ol>
+        </article>
+        <article class="metric-card">
+          <h2>Top Closeness</h2>
+          <ol class="metric-list">{top_closeness}</ol>
+        </article>
+      </section>
+"""
 
     return f"""<!DOCTYPE html>
 <html lang="tr">
@@ -133,6 +179,38 @@ def render_page(
       font-size: 14px;
       color: #4b5563;
     }}
+    .metrics {{
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin: 0 0 16px;
+    }}
+    .metric-card {{
+      border: 1px solid rgba(215, 207, 191, 0.9);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.76);
+      padding: 16px 18px;
+    }}
+    .metric-card h2 {{
+      margin: 0 0 12px;
+      font-size: 18px;
+    }}
+    .metric-card p,
+    .metric-list li {{
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 0 0 8px;
+      font-size: 14px;
+    }}
+    .metric-card p:last-child,
+    .metric-list li:last-child {{
+      margin-bottom: 0;
+    }}
+    .metric-list {{
+      margin: 0;
+      padding-left: 18px;
+    }}
     .error {{
       color: #8f1d21;
       font-weight: 600;
@@ -152,6 +230,9 @@ def render_page(
     }}
     @media (max-width: 620px) {{
       form {{
+        grid-template-columns: 1fr;
+      }}
+      .metrics {{
         grid-template-columns: 1fr;
       }}
       #graph {{
@@ -187,6 +268,7 @@ def render_page(
       {error_html}
       <p id="stats" class="stats"></p>
       <p class="controls">Sol tik ile dondur, mouse tekerlegi ile zoom yap, mod bardaki reset tusu ile gorunumu sifirla.</p>
+      {metrics_html}
       <div id="graph"></div>
     </section>
   </main>
@@ -198,7 +280,7 @@ def render_page(
     const statsElement = document.getElementById('stats');
 
     if (graphData) {{
-      statsElement.textContent = `Dugum: ${{graphData.node_count}} | Kenar: ${{graphData.edge_count}} | Derinlik: ${{graphData.depth}} | Max node: ${{graphData.max_nodes}}`;
+      statsElement.textContent = `Dugum: ${{graphData.node_count}} | Kenar: ${{graphData.edge_count}} | Derinlik: ${{graphData.depth}} | Max node: ${{graphData.max_nodes}} | Yogunluk: %${{graphData.metrics.density_percent.toFixed(2)}}`;
 
       const edgeTrace = {{
         type: 'scatter3d',

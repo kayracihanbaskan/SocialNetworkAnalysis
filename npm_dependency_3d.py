@@ -17,6 +17,7 @@ from matplotlib import animation
 
 from npm_graph_core import (
     NpmRegistryClient,
+    analyze_graph_metrics,
     build_dependency_graph,
     compute_3d_layout,
     node_color,
@@ -47,9 +48,25 @@ def _set_axes_bounds(ax: plt.Axes, nodes: np.ndarray) -> None:
     ax.set_box_aspect((1, 1, 1))
 
 
+def _print_metric_ranking(title: str, entries: object) -> None:
+    print(title)
+
+    if not isinstance(entries, list) or not entries:
+        print("  - Veri yok")
+        return
+
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        name = str(entry.get("name", "-"))
+        value = float(entry.get("value", 0.0))
+        print(f"  - {name}: {value:.4f}")
+
+
 def animate_dependency_graph(
     graph,
     package_name: str,
+    metrics: dict[str, object],
     frames: int,
     interval: int,
     save_path: Path | None,
@@ -64,6 +81,9 @@ def animate_dependency_graph(
     fig = plt.figure(figsize=(11, 8))
     ax = fig.add_subplot(111, projection="3d")
     fig.tight_layout()
+    density_percent = float(metrics.get("density_percent", 0.0))
+    root_betweenness = float(metrics.get("root_betweenness", 0.0))
+    root_closeness = float(metrics.get("root_closeness", 0.0))
 
     def init() -> None:
         ax.clear()
@@ -91,6 +111,12 @@ def animate_dependency_graph(
             0.02,
             0.95,
             f"Dugum: {graph.number_of_nodes()} | Kenar: {graph.number_of_edges()}",
+            transform=ax.transAxes,
+        )
+        ax.text2D(
+            0.02,
+            0.91,
+            f"Yogunluk: %{density_percent:.2f} | Kok betweenness: {root_betweenness:.4f} | Kok closeness: {root_closeness:.4f}",
             transform=ax.transAxes,
         )
         ax.grid(False)
@@ -163,9 +189,11 @@ def main() -> None:
         max_nodes=max(args.max_nodes, 2),
         client=client,
     )
+    metrics = analyze_graph_metrics(graph, root_name=args.package_name)
     saved_path = animate_dependency_graph(
         graph=graph,
         package_name=args.package_name,
+        metrics=metrics,
         frames=max(args.frames, 1),
         interval=max(args.interval, 1),
         save_path=args.save,
@@ -179,6 +207,14 @@ def main() -> None:
         print("Matplotlib penceresi acildi ve animasyon surekli donuyor.")
 
     print(f"Dugum sayisi: {graph.number_of_nodes()} | Kenar sayisi: {graph.number_of_edges()}")
+    print(f"Ag yogunlugu: %{float(metrics.get('density_percent', 0.0)):.2f}")
+    print(
+        "Kok paket merkeziyetleri: "
+        f"betweenness={float(metrics.get('root_betweenness', 0.0)):.4f} | "
+        f"closeness={float(metrics.get('root_closeness', 0.0)):.4f}"
+    )
+    _print_metric_ranking("En yuksek betweenness centrality:", metrics.get("top_betweenness", []))
+    _print_metric_ranking("En yuksek closeness centrality:", metrics.get("top_closeness", []))
 
 
 if __name__ == "__main__":
