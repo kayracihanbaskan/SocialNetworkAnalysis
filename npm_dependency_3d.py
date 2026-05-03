@@ -82,6 +82,8 @@ def animate_dependency_graph(
     ax = fig.add_subplot(111, projection="3d")
     fig.tight_layout()
     density_percent = float(metrics.get("density_percent", 0.0))
+    root_degree = float(metrics.get("root_degree", 0.0))
+    root_eigenvector = float(metrics.get("root_eigenvector", 0.0))
     root_betweenness = float(metrics.get("root_betweenness", 0.0))
     root_closeness = float(metrics.get("root_closeness", 0.0))
 
@@ -116,7 +118,13 @@ def animate_dependency_graph(
         ax.text2D(
             0.02,
             0.91,
-            f"Yogunluk: %{density_percent:.2f} | Kok betweenness: {root_betweenness:.4f} | Kok closeness: {root_closeness:.4f}",
+            f"Yogunluk: %{density_percent:.2f} | Kok degree: {root_degree:.4f} | Kok eigenvector: {root_eigenvector:.4f}",
+            transform=ax.transAxes,
+        )
+        ax.text2D(
+            0.02,
+            0.87,
+            f"Kok betweenness: {root_betweenness:.4f} | Kok closeness: {root_closeness:.4f}",
             transform=ax.transAxes,
         )
         ax.grid(False)
@@ -210,9 +218,13 @@ def main() -> None:
     print(f"Ag yogunlugu: %{float(metrics.get('density_percent', 0.0)):.2f}")
     print(
         "Kok paket merkeziyetleri: "
+        f"degree={float(metrics.get('root_degree', 0.0)):.4f} | "
+        f"eigenvector={float(metrics.get('root_eigenvector', 0.0)):.4f} | "
         f"betweenness={float(metrics.get('root_betweenness', 0.0)):.4f} | "
         f"closeness={float(metrics.get('root_closeness', 0.0)):.4f}"
     )
+    _print_metric_ranking("En yuksek degree centrality:", metrics.get("top_degree", []))
+    _print_metric_ranking("En yuksek eigenvector centrality:", metrics.get("top_eigenvector", []))
     _print_metric_ranking("En yuksek betweenness centrality:", metrics.get("top_betweenness", []))
     _print_metric_ranking("En yuksek closeness centrality:", metrics.get("top_closeness", []))
 

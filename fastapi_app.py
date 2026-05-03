@@ -66,8 +66,12 @@ def render_page(
         if isinstance(metrics, dict):
             density_percent = float(metrics.get("density_percent", 0.0))
             root_package = escape(str(metrics.get("root_package", package_name)))
+            root_degree = float(metrics.get("root_degree", 0.0))
+            root_eigenvector = float(metrics.get("root_eigenvector", 0.0))
             root_betweenness = float(metrics.get("root_betweenness", 0.0))
             root_closeness = float(metrics.get("root_closeness", 0.0))
+            top_degree = render_metric_list(metrics.get("top_degree", []))
+            top_eigenvector = render_metric_list(metrics.get("top_eigenvector", []))
             top_betweenness = render_metric_list(metrics.get("top_betweenness", []))
             top_closeness = render_metric_list(metrics.get("top_closeness", []))
             metrics_html = f"""
@@ -76,8 +80,18 @@ def render_page(
           <h2>Ag Ozeti</h2>
           <p><span>Ag yogunlugu</span><strong>%{density_percent:.2f}</strong></p>
           <p><span>Kok paket</span><strong>{root_package}</strong></p>
+          <p><span>Kok degree</span><strong>{root_degree:.4f}</strong></p>
+          <p><span>Kok eigenvector</span><strong>{root_eigenvector:.4f}</strong></p>
           <p><span>Kok betweenness</span><strong>{root_betweenness:.4f}</strong></p>
           <p><span>Kok closeness</span><strong>{root_closeness:.4f}</strong></p>
+        </article>
+        <article class="metric-card">
+          <h2>Top Degree</h2>
+          <ol class="metric-list">{top_degree}</ol>
+        </article>
+        <article class="metric-card">
+          <h2>Top Eigenvector</h2>
+          <ol class="metric-list">{top_eigenvector}</ol>
         </article>
         <article class="metric-card">
           <h2>Top Betweenness</h2>
@@ -181,7 +195,7 @@ def render_page(
     }}
     .metrics {{
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 12px;
       margin: 0 0 16px;
     }}

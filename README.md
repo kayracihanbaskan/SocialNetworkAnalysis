@@ -11,7 +11,7 @@ Bu proje, secilen bir npm paketinin bagimliliklarini npm registry uzerinden ceki
 - Bagimliliklarin bagimliliklarini da dahil ederek daha genis bir graph kurar.
 - Her paketi bir dugum, bagimlilik iliskisini bir kenar olarak modele ekler.
 - Paket isimlerini node etiketleri olarak gosterir.
-- `NetworkX` ile betweenness centrality, closeness centrality ve ag yogunlugu yuzdesini hesaplar.
+- `NetworkX` ile degree centrality, eigenvector centrality, betweenness centrality, closeness centrality ve ag yogunlugu yuzdesini hesaplar.
 - 20-30 node civarinda daha karmasik bir ag uretmek icin varsayilanlari daha genis tutar.
 
 ## Kurulum
@@ -63,14 +63,14 @@ API olarak yalnizca graph verisini almak isterseniz:
 http://127.0.0.1:8000/api/graph?package_name=express&depth=3&max_children=8&max_nodes=30
 ```
 
-Donen JSON icinde `metrics` alani vardir. Bu alanda ag yogunlugu yuzdesi ile en yuksek betweenness ve closeness centrality degerleri bulunur.
+Donen JSON icinde `metrics` alani vardir. Bu alanda ag yogunlugu yuzdesi ile degree, eigenvector, betweenness ve closeness centrality sonuclari bulunur.
 
 ## Sunum Icin Not
 
 - `express`, `webpack`, `vite`, `eslint` gibi paketler genelde daha dolu graph verir.
 - `depth=3`, `max_children=8`, `max_nodes=30` sunum icin iyi bir baslangictir.
 - FastAPI sayfasinda grafigi sol tik ile dondurebilir, mouse tekerlegi ile zoom yapabilirsiniz.
-- FastAPI sayfasinda ag yogunlugu, kok paketin merkeziyetleri ve en merkezi paketlerin listesi de gosterilir.
+- FastAPI sayfasinda ag yogunlugu, kok paketin tum merkeziyetleri ve en merkezi paketlerin listesi de gosterilir.
 - Node isimleri kalabaliklasirsa `max_nodes` degerini 24-30 araliginda tutun.
 - Matplotlib calistirmasinda ayni metrikler grafik uzerinde ve terminal cikisinda yazdirilir.
 

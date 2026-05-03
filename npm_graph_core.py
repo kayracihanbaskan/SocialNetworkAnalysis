@@ -158,20 +158,54 @@ def _top_metric_entries(metric_values: dict[str, float], limit: int = TOP_METRIC
     ]
 
 
+def _compute_eigenvector_centrality(graph: nx.Graph) -> dict[str, float]:
+    if graph.number_of_nodes() == 0:
+        return {}
+
+    if graph.number_of_nodes() == 1:
+        node_name = next(iter(graph.nodes))
+        return {node_name: 1.0}
+
+    eigenvector: dict[str, float] = {}
+
+    for component_nodes in nx.connected_components(graph):
+        component = graph.subgraph(component_nodes).copy()
+
+        if component.number_of_nodes() == 1:
+            node_name = next(iter(component.nodes))
+            eigenvector[node_name] = 1.0
+            continue
+
+        try:
+            component_values = nx.eigenvector_centrality(component, max_iter=1000, tol=1.0e-06)
+        except nx.PowerIterationFailedConvergence:
+            component_values = {node_name: 0.0 for node_name in component.nodes}
+
+        eigenvector.update(component_values)
+
+    return eigenvector
+
+
 def analyze_graph_metrics(graph: nx.DiGraph, root_name: str | None = None) -> dict[str, object]:
     analysis_graph = graph.to_undirected()
 
     if analysis_graph.number_of_nodes() == 0:
         betweenness: dict[str, float] = {}
         closeness: dict[str, float] = {}
+        degree: dict[str, float] = {}
+        eigenvector: dict[str, float] = {}
         density = 0.0
     else:
         betweenness = nx.betweenness_centrality(analysis_graph, normalized=True)
         closeness = nx.closeness_centrality(analysis_graph)
+        degree = nx.degree_centrality(analysis_graph)
+        eigenvector = _compute_eigenvector_centrality(analysis_graph)
         density = nx.density(analysis_graph) if analysis_graph.number_of_nodes() > 1 else 0.0
 
     rounded_betweenness = {node: _round_metric(value) for node, value in betweenness.items()}
     rounded_closeness = {node: _round_metric(value) for node, value in closeness.items()}
+    rounded_degree = {node: _round_metric(value) for node, value in degree.items()}
+    rounded_eigenvector = {node: _round_metric(value) for node, value in eigenvector.items()}
     resolved_root_name = root_name if root_name in graph else next(iter(graph.nodes), "")
 
     return {
@@ -179,11 +213,17 @@ def analyze_graph_metrics(graph: nx.DiGraph, root_name: str | None = None) -> di
         "density_percent": round(float(density) * 100, 2),
         "betweenness": rounded_betweenness,
         "closeness": rounded_closeness,
+        "degree": rounded_degree,
+        "eigenvector": rounded_eigenvector,
         "top_betweenness": _top_metric_entries(rounded_betweenness),
         "top_closeness": _top_metric_entries(rounded_closeness),
+        "top_degree": _top_metric_entries(rounded_degree),
+        "top_eigenvector": _top_metric_entries(rounded_eigenvector),
         "root_package": resolved_root_name,
         "root_betweenness": rounded_betweenness.get(resolved_root_name, 0.0),
         "root_closeness": rounded_closeness.get(resolved_root_name, 0.0),
+        "root_degree": rounded_degree.get(resolved_root_name, 0.0),
+        "root_eigenvector": rounded_eigenvector.get(resolved_root_name, 0.0),
     }
 
 
@@ -230,6 +270,8 @@ def build_plotly_payload(graph: nx.DiGraph, package_name: str) -> dict[str, obje
     metrics = analyze_graph_metrics(graph, root_name=package_name)
     betweenness = metrics["betweenness"]
     closeness = metrics["closeness"]
+    degree_centrality = metrics["degree"]
+    eigenvector_centrality = metrics["eigenvector"]
     edge_x: list[float | None] = []
     edge_y: list[float | None] = []
     edge_z: list[float | None] = []
@@ -251,7 +293,7 @@ def build_plotly_payload(graph: nx.DiGraph, package_name: str) -> dict[str, obje
 
     for node_name, node_data in graph.nodes(data=True):
         x, y, z = positions[node_name]
-        degree = graph.degree(node_name)
+        node_degree = graph.degree(node_name)
         depth = int(node_data.get("depth", 0))
         node_x.append(float(x))
         node_y.append(float(y))
@@ -266,9 +308,11 @@ def build_plotly_payload(graph: nx.DiGraph, package_name: str) -> dict[str, obje
                     f"Cozulen surum: {node_data.get('resolved_version', 'unknown')}",
                     f"Istenen surum: {node_data.get('requested_version', 'latest')}",
                     f"Derinlik: {depth}",
-                    f"Derece: {degree}",
+                    f"Derece: {node_degree}",
+                    f"Degree centrality: {degree_centrality.get(node_name, 0.0):.4f}",
                     f"Betweenness centrality: {betweenness.get(node_name, 0.0):.4f}",
                     f"Closeness centrality: {closeness.get(node_name, 0.0):.4f}",
+                    f"Eigenvector centrality: {eigenvector_centrality.get(node_name, 0.0):.4f}",
                 ]
             )
         )
