@@ -16,29 +16,36 @@ Bu proje, secilen bir npm paketinin bagimliliklarini npm registry uzerinden ceki
 
 ## Kurulum
 
-Bu calisma alaninda gerekli paketler kuruldu:
+Projeyi herhangi bir dizinde calistirabilirsiniz. Once sanal ortami olusturup aktif edin, sonra bagimliliklari yukleyin.
 
-- `networkx`
-- `numpy`
-- `scipy`
-- `matplotlib`
-- `pillow`
-- `requests`
-- `fastapi`
-- `uvicorn`
+Windows PowerShell:
+
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+```
+
+Git Bash:
+
+```bash
+python -m venv .venv
+source .venv/Scripts/activate
+python -m pip install -r requirements.txt
+```
 
 ## 1. Canli Matplotlib Animasyonu
 
-Asagidaki komut `express` paketi icin pencere acar. Bu pencere GIF gibi basa sarmaz; surekli doner.
+Sanal ortam aktifken asagidaki komut `express` paketi icin pencere acar. Bu pencere GIF gibi basa sarmaz; surekli doner.
 
 ```bash
-c:/Users/cihan/OneDrive/Masaüstü/SocialNetworkAnalysis/.venv/Scripts/python.exe npm_dependency_3d.py express --depth 3 --max-children 8 --max-nodes 30
+python npm_dependency_3d.py express --depth 3 --max-children 8 --max-nodes 30
 ```
 
 Kayit almak isterseniz yine GIF uretebilirsiniz, ama GIF dogasi geregi bir noktada basa sarar:
 
 ```bash
-c:/Users/cihan/OneDrive/Masaüstü/SocialNetworkAnalysis/.venv/Scripts/python.exe npm_dependency_3d.py webpack --depth 3 --max-children 8 --max-nodes 30 --frames 360 --interval 40 --save output/webpack_dependencies.gif --no-show
+python npm_dependency_3d.py webpack --depth 3 --max-children 8 --max-nodes 30 --frames 360 --interval 40 --save output/webpack_dependencies.gif --no-show
 ```
 
 ## 2. FastAPI Ile Paket Gonderme
@@ -48,7 +55,7 @@ Sunum icin daha kullanisli yol budur. Paket adini formdan gonderebilir, 3B agi t
 Sunucuyu baslatin:
 
 ```bash
-c:/Users/cihan/OneDrive/Masaüstü/SocialNetworkAnalysis/.venv/Scripts/python.exe -m uvicorn fastapi_app:app --reload
+python -m uvicorn fastapi_app:app --reload
 ```
 
 Sonra tarayicida su adresi acin:
